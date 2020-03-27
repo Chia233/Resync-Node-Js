@@ -1,0 +1,240 @@
+<html>
+<head>Resync Node JS test</head>
+
+<!--CSS-->
+<link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+
+<!--scripts-->
+<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+
+<style>
+    html {
+        font-family: 'roboto';    
+    }
+	.simpleFlex {
+		display: flex;
+	}
+	.simpleFlex > a {
+		margin-right: 5px;
+	}
+</style>
+<p>Welcome</p>
+<div class="menuContainer">
+    <p><a href="./">Main page</a> <a href="./register.html">Register</a></p>
+</div>
+</br>		
+<form name="nodeLogin" method="" action="/login" onsubmit="validateForm(); return false">
+    <fieldset>
+    <br>
+    <p> <label for="Username">Email: </label> <input type="text" name="Email" pattern="^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$" ></input></p>
+    <br>
+    <p>Password: <input type="password" name="Password"></input> </p>
+    <br>
+    <input type="submit" name="Login" value="login" style="width:80px; margin-bottom:10px;"></input>
+    </fieldset>
+</form>
+<div class="loginOutput">
+
+</div>
+<button onclick="getAllCountryDetails();">Get All Country Detais</button>
+
+<div class="allCountryDetailOutput">
+    <table>
+    
+    </table>
+</div>
+<p>Pick a country to get the GMT Offset </p>
+<form method="" action="" onsubmit="getCountryDetails(); return false" name="GMTOffset">
+        <select>
+            <option name="Singapore" value="Singapore">Singapore</option>
+            <option name="Japan" value="Japan">Japan</option>
+            <option name="NewZealand" value="NewZealand">New Zealand</option>
+        </select>
+    <input type="submit">
+</form> 
+<div class="getCountryDetailsOutput">
+
+</div>
+
+<button onclick="doRefreshToken();">Refresh Access Token</button>
+
+<div class="refreshTokenOutput">
+
+</div>
+<script type='text/javascript'>
+    
+    function validateForm() {
+        var checkusername=document.forms["nodeLogin"]["Email"].value;
+        var checkpassword=document.forms["nodeLogin"]["Password"].value;
+        if (checkusername==null || checkusername=="") {
+              alert("Email must be filled out");
+            return false;
+        }
+        if (checkpassword==null || checkpassword=="") {
+              alert("Password must be filled out");
+              return false;
+          } 
+        if (checkpassword != null && checkusername != null) {
+            doLogin();
+        }
+    };
+    
+    //login fetch wrapper
+    function doLogin() {
+        let email = $("input[name = 'Email']").val()
+        let password = $("input[name = 'Password']").val()
+        console.log("The login email is " + email);
+        console.log("The login password is " + password)
+
+        let payload = {
+            'email': email,
+            'password': password
+        }
+
+        fetch('/login', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json" 
+            },
+            credentials: "include",
+            body: JSON.stringify(payload)
+        })
+        //consume promise
+        .then((response) => {
+            return response.json()
+        })
+        //then use promise data
+        .then((data) => {
+            console.log(data);
+            console.log("The encrypted user key is " + data.token);
+            localStorage.setItem("userKey", data.token);
+            console.log("Encrypted key saved into local storage");
+
+            $("div[class='loginOutput']").text(data.text);
+        })
+        .catch((err) => {
+            $("div[class='loginOutput'").text("Something went wrong with your login :( . Please try again.");
+            console.log("Failure: ", err)
+        })
+    };
+
+    //parse get all country details button
+    function getAllCountryDetails() {
+        if (localStorage.getItem("userKey") == null) {
+            console.log("Clicked on Get All Country Details button without logging in");
+            $("div[class='allCountryDetailOutput']").text("You must be logged in to use this function!");
+            return;
+        }
+
+        let payload = localStorage.getItem("userKey")
+        
+        fetch('/allCountryDetails', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization":  payload
+            },
+            credentials: "include",
+        })
+        .then((response) => {
+            return response.json()
+        })
+        .then((data) => {
+            console.log(data);
+            if (data.text) {
+                console.log("The current text is :" + data.text);
+            };
+            
+            //check if server sent a json query object or not
+            if (typeof data.query !=='undefined') {
+                //loop through query length and number of results in the query and append it to html
+                let queryLength = Object.keys(data.query).length;
+                for (i=0; i < queryLength; i++) {
+                    for (j=0; j < Object.keys(data.query[i]).length -2; j++) {
+                        $("div[class='allCountryDetailOutput']").append("<li>" +data.query[i].CountryName + " " + "</li>");
+                        $("div[class='allCountryDetailOutput']").append("<li>" +data.query[i].GMTOffset + " " + "</li>");
+                    }
+                }
+            }
+            else {
+                $("div[class='allCountryDetailOutput']").text(data.text);
+            }
+        })
+    };
+
+    //parse getCountryDetails submission
+    function getCountryDetails() {
+        if (localStorage.getItem("userKey") == null) {
+            console.log("Clicked on get Single country detail button without logging in");
+            $("div[class='getCountryDetailsOutput']").text("You must be logged in to use this function!");
+            return;
+        }
+        
+        let payload = localStorage.getItem("userKey")
+        let countryRequest = $("form[name='GMTOffset'] > select > option:selected").val();
+        console.log("User has selected " + countryRequest);
+
+        fetch('/countryDetails', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization":  payload,
+                country: countryRequest
+            },
+            credentials: "include",
+        })
+        .then((response) => {
+            return response.json()
+        })
+        .then((data) => {
+            console.log(data);
+            if (data.text) {
+                console.log("The current text is :" + data.text);
+            };
+
+            if (typeof data.query !== 'undefined') {
+                $("div[class='getCountryDetailsOutput']").html("<li>" + "The GMT Offset is " + data.query['0'].GMTOffset + " " + "</li>");
+            }
+            else {
+                $("div[class='getCountryDetailsOutput']").html("<p>" + "There was an error with your request. Please try again." +"</p>");
+            }
+        });
+    };
+
+    //Parse refresh access token button
+    function doRefreshToken() {
+        if (localStorage.getItem("userKey") == null) {
+            console.log("Clicked on refresh access token without logging in");
+            $("div[class='refreshTokenOutput']").text("You must be logged in to use this function!");
+            return;
+        }
+
+        let payload = localStorage.getItem("userKey")
+
+        fetch('/refreshToken', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": payload
+            },
+            credentials:"include"
+        })
+        .then((response) => {
+            return response.json();
+        })
+        .then((data) => {
+            console.log(data);
+            console.log("The current text is " + data.text);
+            
+            $("div[class='refreshTokenOutput']").text(data.text);
+            if (typeof data.token !=='undefined') {
+                console.log("The new token is : " + data.token);
+                localStorage.setItem("userKey", data.token);
+                console.log("Session key updated in local storage:" +data.token);
+            }
+        })
+
+    }
+</script>
+
+</html>

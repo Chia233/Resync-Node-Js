@@ -1,0 +1,95 @@
+<html>
+<head>Resync Node JS test</head>
+
+<!--CSS-->
+<link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+
+<!--scripts-->
+<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+
+<style>
+    html {
+        font-family: 'roboto';    
+    }
+	.simpleFlex {
+		display: flex;
+	}
+	.simpleFlex > a {
+		margin-right: 5px;
+	}
+</style>
+<p>Welcome</p>
+<div class="menuContainer">
+    <p><a href="./">Main page</a> <a href="./register.html">Register</a></p>
+</div>
+</br>		
+<form name="nodeRegister" method="" action="/createuser" onSubmit="validateForm(); return false">
+    <fieldset>
+    <br>
+    <p>You can Register by entering your email and password below:</p>
+    <p> <label for="Email">Email: </label> <input type="text" name="Email" pattern="^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"></input></p>
+    <br>
+    <p>Password: <input type="password" name="Password"></input> </p>
+    <br>
+    <input type="submit" name="register" value="register" style="width:80px; margin-bottom:10px;"></input>
+    </fieldset>
+</form>
+<div class="registerOutput">
+
+</div>
+<script type='text/javascript'>
+    
+    function validateForm() {
+        var checkusername=document.forms["nodeRegister"]["Email"].value;
+        var checkpassword=document.forms["nodeRegister"]["Password"].value;
+        if (checkusername==null || checkusername=="") {
+              alert("Email must be filled out");
+            return false;
+        }
+        if (checkpassword==null || checkpassword=="") {
+              alert("Password must be filled out");
+              return false;
+          } 
+        if (checkpassword != null && checkusername != null) {
+            doRegister();
+            
+        }
+    }
+    
+    //fetch wrapper
+    function doRegister() {
+        let email = $("input[name = 'Email']").val()
+        let password = $("input[name = 'Password']").val()
+        console.log("The registration email is " + email);
+        console.log("The registration password is " + password)
+
+        let payload = {
+            'email': email,
+            'password': password
+        }
+        
+        fetch('/createuser', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify(payload)
+        })
+        //consume promise
+        .then((response) => {
+            return response.json()
+        })
+        //then use promise data
+        .then((data) => {
+            $("div[class='registerOutput'").text(data.text);
+            console.log('Success:', data.text);
+        })
+        .catch((err) => {
+            $("div[class='registerOutput'").text("Something went wrong with the account creation :( . Please try again.")
+            console.log("Failure: ", err)
+        })
+
+    }
+</script>
+</html>
